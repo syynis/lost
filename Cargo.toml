@@ -1,0 +1,61 @@
+[package]
+name = "lost"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+leafwing-input-manager = "0.11.2"
+bevy_nine_slice_ui = "0.2"
+serde = "1.0"
+ron = "0.8"
+thiserror = "1.0"
+
+[dependencies.bevy]
+version = "0.12.1"
+features = [ "wav" ]
+
+[dependencies.bevy_asset_loader]
+version = "0.18"
+features = [ "2d" ]
+
+[dependencies.bevy-inspector-egui]
+version = "0.21"
+optional = true
+
+[dependencies.bevy_pancam]
+version = "0.10"
+features = ["bevy_egui"]
+
+[dependencies.bevy_simple_tilemap]
+#git = "https://github.com/syynis/bevy_simple_tilemap"
+#branch = "master"
+path = "../bevy_simple_tilemap"
+
+[dependencies.bevy_pile]
+git = "https://github.com/syynis/bevy_pile"
+branch = "main"
+
+[features]
+default = [ "hot", "dyn", "inspector" ]
+hot = [ "bevy/file_watcher" ]
+dyn = [ "bevy/dynamic_linking" ]
+inspector = [ "bevy-inspector-egui" ]
+
+[profile.wasm-release]
+inherits = "release"
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+
+[profile.native-release]
+inherits = "release"
+lto = true
+
+[profile.dev]
+opt-level = 1
+incremental = true
+
+[profile.dev.package."*"]
+opt-level = 3
