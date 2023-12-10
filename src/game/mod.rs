@@ -3,7 +3,10 @@ use bevy_asset_loader::prelude::*;
 
 use crate::cleanup::cleanup_on_state_change;
 
-use self::level::{LevelLoader, Levels};
+use self::{
+    history::History,
+    level::{LevelLoader, Levels},
+};
 
 pub mod collision;
 pub mod history;
@@ -23,9 +26,15 @@ impl Plugin for GamePlugin {
             player::PlayerPlugin,
             collision::CollisionPlugin,
             level::LevelPlugin,
+            history::HistoryPlugin,
+            history::HistoryComponentPlugin::<TilePos>::default(),
         ));
         app.register_asset_loader(LevelLoader)
             .init_asset::<Levels>();
+        app.register_type::<TilePos>()
+            .register_type::<Dir>()
+            .register_type::<History<TilePos>>()
+            .register_type::<EntityKind>();
         app.add_state::<GameState>()
             .add_loading_state(
                 LoadingState::new(GameState::AssetLoading)

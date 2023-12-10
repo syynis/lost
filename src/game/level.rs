@@ -12,8 +12,8 @@ use thiserror::Error;
 use crate::cleanup::DependOnState;
 
 use super::{
-    collision::init_collision_map, level_select::CurrentLevel, util::DIRS, GameAssets, GameState,
-    TilePos,
+    collision::init_collision_map, level_select::CurrentLevel, player::SpawnPlayer, util::DIRS,
+    GameAssets, GameState, TilePos,
 };
 
 pub struct LevelPlugin;
@@ -21,22 +21,22 @@ pub struct LevelPlugin;
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(SimpleTileMapPlugin);
-        app.register_type::<Level>()
-            .add_systems(
-                OnTransition {
-                    from: GameState::LevelTransition,
-                    to: GameState::Play,
-                },
-                (spawn_level, apply_deferred)
-                    .chain()
-                    .before(init_collision_map),
-            )
-            .add_systems(
-                Update,
-                reload_on_change
-                    .run_if(in_state(GameState::Play))
-                    .run_if(on_event::<AssetEvent<Levels>>()),
-            );
+        app.register_type::<Level>();
+        app.add_systems(
+            OnTransition {
+                from: GameState::LevelTransition,
+                to: GameState::Play,
+            },
+            (spawn_level, apply_deferred)
+                .chain()
+                .before(init_collision_map),
+        )
+        .add_systems(
+            Update,
+            reload_on_change
+                .run_if(in_state(GameState::Play))
+                .run_if(on_event::<AssetEvent<Levels>>()),
+        );
     }
 }
 
@@ -67,15 +67,17 @@ fn spawn_level(
             LevelRoot,
         ))
         .id();
+    let tilemap_entity = cmds.spawn_empty().id();
     let mut tiles = Vec::new();
     for (idx, tile) in level.tiles.iter().enumerate() {
         let x = idx as i32 % level.size.x as i32;
         let y = idx as i32 / level.size.x as i32;
-        let position = TilePos(IVec2::new(x, y));
+        let pos = TilePos(IVec2::new(x, y));
 
-        let (index, flip) = tile.index_flip(&position, level);
+        let (index, flip) = tile.index_flip(&pos, level);
 
         // Tile is not walkable and above us is static tile
+        /*
         if !tile.is_static() && level.tiles[idx + level.size.x as usize].is_static() {
             tiles.push((
                 IVec3::new(x, y, 0),
@@ -85,6 +87,7 @@ fn spawn_level(
                 }),
             ));
         }
+            */
 
         tiles.push((
             IVec3::new(x, y, 0),
@@ -94,12 +97,26 @@ fn spawn_level(
                 ..default()
             }),
         ));
+
+        match tile {
+            TileKind::Wall => {}
+            TileKind::Floor => {}
+            TileKind::Player => cmds.add(SpawnPlayer {
+                pos,
+                tilemap_entity: level_root,
+            }),
+            TileKind::Pushable => {}
+            TileKind::Pullable => {}
+            TileKind::Platform => {}
+            TileKind::Pit => {}
+        }
     }
 
     let mut tilemap = TileMap::default();
     tilemap.set_tiles(tiles);
     let tilemap_entity = cmds
-        .spawn((
+        .entity(tilemap_entity)
+        .insert((
             TileMapBundle {
                 tilemap,
                 texture_atlas: assets.tiles.clone_weak(),
@@ -127,7 +144,7 @@ fn calculate_wall_index(pos: IVec2, level: &Level) -> (u32, TileFlags) {
     let diag_c: usize = [ne, se, sw, nw].iter().map(|x| *x as usize).sum();
     let card_c: usize = [n, e, s, w].iter().map(|x| *x as usize).sum();
 
-    #[derive(Default)]
+    #[derive(Default, Debug)]
     struct TileFlip {
         pub x: bool,
         pub y: bool,
@@ -137,13 +154,13 @@ fn calculate_wall_index(pos: IVec2, level: &Level) -> (u32, TileFlags) {
     let flip_to_flag = |tileflip: TileFlip| -> TileFlags {
         let mut empty = TileFlags::empty();
         if tileflip.x {
-            empty |= TileFlags::FLIP_X;
+            empty.insert(TileFlags::FLIP_X);
         }
         if tileflip.y {
-            empty |= TileFlags::FLIP_Y;
+            empty.insert(TileFlags::FLIP_Y);
         }
         if tileflip.d {
-            empty |= TileFlags::FLIP_D;
+            empty.insert(TileFlags::FLIP_D);
         }
         empty
     };

@@ -29,9 +29,8 @@ version = "0.10"
 features = ["bevy_egui"]
 
 [dependencies.bevy_simple_tilemap]
-#git = "https://github.com/syynis/bevy_simple_tilemap"
-#branch = "master"
-path = "../bevy_simple_tilemap"
+git = "https://github.com/syynis/bevy_simple_tilemap"
+branch = "master"
 
 [dependencies.bevy_pile]
 git = "https://github.com/syynis/bevy_pile"

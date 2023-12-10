@@ -61,7 +61,6 @@ impl SpawnPlayer {
 impl Command for SpawnPlayer {
     fn apply(self, world: &mut World) {
         let texture = world.resource::<GameAssets>().player.clone();
-
         world
             .entity_mut(self.tilemap_entity)
             .with_children(|child_builder| {
