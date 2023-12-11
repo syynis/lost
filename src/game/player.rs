@@ -1,16 +1,18 @@
-use bevy::{ecs::system::Command, prelude::*};
+use std::ops::AddAssign;
+
+use bevy::{ecs::system::Command, log, prelude::*};
 use leafwing_input_manager::prelude::*;
 
 use super::{
+    collision::CollisionMap,
     history::{HandleHistoryEvents, History},
-    Dir, GameAssets, GameState, TilePos,
+    Dir, EntityKind, GameAssets, GameState, TilePos,
 };
 
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<PlayerMove>();
         app.add_plugins(InputManagerPlugin::<PlayerActions>::default())
             .add_systems(Startup, setup)
             .add_systems(
@@ -75,6 +77,7 @@ impl Command for SpawnPlayer {
                         ..default()
                     },
                     MovementTimer::default(),
+                    EntityKind::Pushable,
                 ));
             });
     }
@@ -111,16 +114,14 @@ impl Default for MovementTimer {
     }
 }
 
-#[derive(Event)]
-pub struct PlayerMove(pub Dir);
-
 pub fn player_movement(
-    mut player_q: Query<&mut MovementTimer, With<Player>>,
+    mut player_q: Query<(Entity, &mut MovementTimer), With<Player>>,
+    mut dynamic_entities: Query<&mut TilePos>,
     player_actions: Query<&ActionState<PlayerActions>>,
-    mut sokoban_events: EventWriter<PlayerMove>,
     time: Res<Time>,
+    collision: Res<CollisionMap>,
 ) {
-    let Ok(mut movement_timer) = player_q.get_single_mut() else {
+    let Ok((player_entity, mut movement_timer)) = player_q.get_single_mut() else {
         return;
     };
 
@@ -134,12 +135,34 @@ pub fn player_movement(
         return;
     }
 
+    let player_pos = dynamic_entities
+        .get(player_entity)
+        .expect("Player always has tile pos")
+        .0
+        .clone();
     for direction in player_actions
         .get_pressed()
         .iter()
         .map(|action| Dir::from(*action))
     {
         movement_timer.reset();
-        sokoban_events.send(PlayerMove(direction));
+
+        match collision.push_collision(player_pos, direction) {
+            super::collision::CollisionResult::Push(push) => {
+                let dir_vec = IVec2::from(direction);
+                for e in push {
+                    dynamic_entities
+                        .get_component_mut::<TilePos>(e)
+                        .expect("Every entity in collision map has tile pos")
+                        .add_assign(dir_vec);
+                }
+            }
+            super::collision::CollisionResult::Collision => {
+                log::debug!("Can't move");
+            }
+            super::collision::CollisionResult::OutOfBounds => {
+                log::debug!("Player out of bounds");
+            }
+        }
     }
 }

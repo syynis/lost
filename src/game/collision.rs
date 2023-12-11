@@ -120,6 +120,7 @@ impl CollisionMap {
             match dest_entity {
                 CollisionEntry::Free => {
                     moving_entities.push(*pusher);
+                    break;
                 }
                 CollisionEntry::Occupied {
                     entity: pushed,

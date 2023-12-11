@@ -4,6 +4,7 @@ use bevy_asset_loader::prelude::*;
 use crate::cleanup::cleanup_on_state_change;
 
 use self::{
+    collision::CollisionMap,
     history::History,
     level::{LevelLoader, Levels},
 };
