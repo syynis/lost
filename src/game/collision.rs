@@ -116,7 +116,7 @@ impl CollisionMap {
         let mut current_pos = pusher_pos;
         let mut dest = move_in_dir(current_pos);
         let mut pusher = pusher;
-        while let Some(dest_entity) = self.get(dest) {
+        'outer: while let Some(dest_entity) = self.get(dest) {
             match dest_entity {
                 CollisionEntry::Free => {
                     moving_entities.push(*pusher);
@@ -131,18 +131,23 @@ impl CollisionMap {
                         if is_player {
                             return CollisionResult::Collision;
                         } else {
-                            moving_entities.push(*pusher)
+                            moving_entities.push(*pusher);
+                            break 'outer;
                         }
                     }
                     EntityKind::ObstacleBlock => {
                         if is_player {
-                            moving_entities.push(*pusher)
+                            moving_entities.push(*pusher);
+                            break 'outer;
                         } else {
                             return CollisionResult::Collision;
                         }
                     }
                     EntityKind::Pullable => {
                         moving_entities.push(*pusher);
+                        if !is_player {
+                            break 'outer;
+                        }
                         pusher = pushed;
                         current_pos = dest;
                         dest = move_in_dir(current_pos);
@@ -150,6 +155,9 @@ impl CollisionMap {
                     }
                     EntityKind::Pushable => {
                         moving_entities.push(*pusher);
+                        if !is_player {
+                            break 'outer;
+                        }
                         pusher = pushed;
                         current_pos = dest;
                         dest = move_in_dir(current_pos);

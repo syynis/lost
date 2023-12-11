@@ -12,8 +12,8 @@ use thiserror::Error;
 use crate::cleanup::DependOnState;
 
 use super::{
-    collision::init_collision_map, level_select::CurrentLevel, player::SpawnPlayer, util::DIRS,
-    GameAssets, GameState, TilePos,
+    collision::init_collision_map, history::History, level_select::CurrentLevel,
+    player::SpawnPlayer, util::DIRS, EntityKind, GameAssets, GameState, TilePos,
 };
 
 pub struct LevelPlugin;
@@ -99,16 +99,42 @@ fn spawn_level(
         ));
 
         match tile {
-            TileKind::Wall => {}
+            TileKind::Wall => {
+                cmds.entity(level_root).with_children(|parent| {
+                    parent.spawn((Name::new("Wall"), pos, EntityKind::Obstacle));
+                });
+            }
             TileKind::Floor => {}
             TileKind::Player => cmds.add(SpawnPlayer {
                 pos,
                 tilemap_entity: level_root,
             }),
-            TileKind::Pushable => {}
+            TileKind::Pushable => {
+                cmds.entity(level_root).with_children(|parent| {
+                    parent.spawn((
+                        Name::new("Pushable"),
+                        pos,
+                        EntityKind::Pushable,
+                        History::<TilePos>::default(),
+                        SpriteBundle {
+                            texture: assets.pushable.clone_weak(),
+                            transform: Transform::from_translation(2. * Vec3::Z),
+                            ..default()
+                        },
+                    ));
+                });
+            }
             TileKind::Pullable => {}
-            TileKind::Platform => {}
-            TileKind::Pit => {}
+            TileKind::Platform => {
+                cmds.entity(level_root).with_children(|parent| {
+                    parent.spawn((Name::new("Platform"), pos, EntityKind::ObstacleBlock));
+                });
+            }
+            TileKind::Pit => {
+                cmds.entity(level_root).with_children(|parent| {
+                    parent.spawn((Name::new("Pit"), pos, EntityKind::ObstaclePlayer));
+                });
+            }
         }
     }
 

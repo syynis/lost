@@ -110,7 +110,7 @@ pub struct MovementTimer(pub Timer);
 
 impl Default for MovementTimer {
     fn default() -> MovementTimer {
-        MovementTimer(Timer::from_seconds(0.075, TimerMode::Once))
+        MovementTimer(Timer::from_seconds(0.2, TimerMode::Once))
     }
 }
 

@@ -4,7 +4,6 @@ use bevy_asset_loader::prelude::*;
 use crate::cleanup::cleanup_on_state_change;
 
 use self::{
-    collision::CollisionMap,
     history::History,
     level::{LevelLoader, Levels},
 };
@@ -63,6 +62,8 @@ pub enum GameState {
 pub struct GameAssets {
     #[asset(path = "player.png")]
     pub player: Handle<Image>,
+    #[asset(path = "pushable.png")]
+    pub pushable: Handle<Image>,
     #[asset(texture_atlas(tile_size_x = 8., tile_size_y = 8., columns = 8, rows = 3))]
     #[asset(path = "tiles.png")]
     pub tiles: Handle<TextureAtlas>,
