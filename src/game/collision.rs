@@ -101,6 +101,22 @@ pub enum CollisionResult {
 }
 
 impl CollisionMap {
+    pub fn is_blocked(&self, pos: IVec2, player: bool) -> bool {
+        self.get(pos).map_or(true, |entry| match entry {
+            CollisionEntry::Free => false,
+            CollisionEntry::Occupied { entity: _, kind } => {
+                matches!(
+                    kind,
+                    EntityKind::Wall | EntityKind::Pullable | EntityKind::Pushable
+                ) || if player {
+                    matches!(kind, EntityKind::Pit)
+                } else {
+                    matches!(kind, EntityKind::Platform)
+                }
+            }
+        })
+    }
+
     pub fn player_push_collision(
         &self,
         pusher: Entity,
