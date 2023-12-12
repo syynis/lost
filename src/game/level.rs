@@ -333,12 +333,20 @@ impl From<u8> for TileKind {
     }
 }
 
+#[derive(Deserialize, Debug, Reflect, Deref)]
+pub struct StringLevel(pub String);
+#[derive(Deserialize, Debug, Deref)]
+pub struct StringLevels(pub Vec<StringLevel>);
+
 #[derive(TypePath, TypeUuid, Debug, Deserialize, Deref, DerefMut, Asset)]
 #[uuid = "39cadc56-aa9c-4543-8540-a018b74b5052"]
 pub struct Levels(pub Vec<Level>);
 
-#[derive(Debug, Deserialize)]
-struct StringLevels(pub Vec<StringLevel>);
+#[derive(Deserialize, Debug, Reflect)]
+pub struct Level {
+    pub tiles: Vec<TileKind>,
+    pub size: UVec2,
+}
 
 #[derive(Default)]
 pub struct LevelLoader;
@@ -367,25 +375,25 @@ impl AssetLoader for LevelLoader {
             let mut bytes = Vec::new();
             reader.read_to_end(&mut bytes).await?;
             let string_levels = ron::de::from_bytes::<StringLevels>(&bytes)?;
-
             let levels = string_levels
-                .0
                 .iter()
                 .map(|string_level| {
+                    let height = string_level.split('\n').count() as u32;
                     let tiles = string_level
-                        .tiles
                         .replace(['\n', ' '], "")
                         .as_bytes()
                         .iter()
                         .map(|byte| TileKind::from(*byte))
-                        .collect::<Vec<TileKind>>()
-                        .chunks_exact(string_level.size.x as usize)
+                        .collect::<Vec<TileKind>>();
+                    let width = tiles.len() as u32 / height;
+                    let tiles = tiles
+                        .chunks_exact(width as usize)
                         .rev()
                         .flat_map(|chunk| chunk.to_vec())
                         .collect::<Vec<TileKind>>();
                     Level {
                         tiles,
-                        size: string_level.size,
+                        size: UVec2::new(width, height),
                     }
                 })
                 .collect::<Vec<Level>>();
@@ -395,18 +403,6 @@ impl AssetLoader for LevelLoader {
     }
 
     fn extensions(&self) -> &[&str] {
-        &["levels"]
+        &["levels.ron"]
     }
-}
-
-#[derive(Deserialize, Debug, Reflect)]
-pub struct Level {
-    pub tiles: Vec<TileKind>,
-    pub size: UVec2,
-}
-
-#[derive(Deserialize, Debug, Reflect)]
-struct StringLevel {
-    pub tiles: String,
-    pub size: UVec2,
 }

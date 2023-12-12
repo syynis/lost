@@ -71,7 +71,7 @@ pub struct GameAssets {
     pub tiles: Handle<TextureAtlas>,
     #[asset(path = "button.png")]
     pub button: Handle<Image>,
-    #[asset(path = "test.levels")]
+    #[asset(path = "test.levels.ron")]
     pub levels: Handle<Levels>,
 }
 
