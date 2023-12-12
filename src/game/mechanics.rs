@@ -49,9 +49,9 @@ fn check_win(
                 for dir in CARDINALS_DIR.iter() {
                     let dest = entity_pos + IVec2::from(*dir);
                     let dest2 = dest + IVec2::from(*dir);
-                    if !collision.is_blocked(dest, true)
-                        && !collision.is_blocked(dest2, true)
-                        && !collision.is_blocked(dest, false)
+                    if !(collision.is_blocked(dest, true)
+                        || collision.is_blocked(dest2, true)
+                        || collision.is_blocked(dest, false))
                     {
                         check_for_reachable.push(dest);
                     }
@@ -61,7 +61,7 @@ fn check_win(
                 for dir in CARDINALS_DIR.iter() {
                     let dest = entity_pos + IVec2::from(*dir);
                     let opp = entity_pos + IVec2::from(dir.opposite());
-                    if !collision.is_blocked(dest, true) && !collision.is_blocked(opp, false) {
+                    if !(collision.is_blocked(dest, true) || collision.is_blocked(opp, false)) {
                         check_for_reachable.push(dest);
                     }
                 }

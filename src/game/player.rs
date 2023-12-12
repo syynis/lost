@@ -159,9 +159,6 @@ pub fn player_movement(
             super::collision::CollisionResult::Collision => {
                 log::debug!("Can't move");
             }
-            super::collision::CollisionResult::OutOfBounds => {
-                log::debug!("Player out of bounds");
-            }
         }
     }
 }

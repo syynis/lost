@@ -97,7 +97,6 @@ fn sync_collision_map(
 pub enum CollisionResult {
     Push(Vec<Entity>),
     Collision,
-    OutOfBounds,
 }
 
 impl CollisionMap {
@@ -133,17 +132,10 @@ impl CollisionMap {
         {
             match kind {
                 EntityKind::Pushable => {
-                    if let Some(dest_entry) = self.get(move_in_dir(dest, direction)) {
-                        match dest_entry {
-                            CollisionEntry::Free => moving_entities.push(*pushed),
-                            CollisionEntry::Occupied { entity: _, kind } => match kind {
-                                EntityKind::Wall
-                                | EntityKind::Pullable
-                                | EntityKind::Platform
-                                | EntityKind::Pushable => return CollisionResult::Collision,
-                                EntityKind::Pit => moving_entities.push(*pushed),
-                            },
-                        }
+                    if self.is_blocked(move_in_dir(dest, direction), false) {
+                        return CollisionResult::Collision;
+                    } else {
+                        moving_entities.push(*pushed)
                     }
                 }
                 EntityKind::Wall | EntityKind::Pullable | EntityKind::Pit => {
@@ -153,18 +145,10 @@ impl CollisionMap {
             }
         }
         let opp = move_in_dir(pusher_pos, direction.opposite());
-        if let Some(entry) = self.get(pusher_pos) {
-            let pull = match entry {
-                CollisionEntry::Free => true,
-                CollisionEntry::Occupied { entity: _, kind } => {
-                    !matches!(kind, EntityKind::Platform)
-                }
-            };
-            if pull {
-                if let Some(CollisionEntry::Occupied { entity, kind }) = self.get(opp) {
-                    if matches!(kind, EntityKind::Pullable) {
-                        moving_entities.push(*entity);
-                    }
+        if !self.is_blocked(pusher_pos, false) {
+            if let Some(CollisionEntry::Occupied { entity, kind }) = self.get(opp) {
+                if matches!(kind, EntityKind::Pullable) {
+                    moving_entities.push(*entity);
                 }
             }
         }
