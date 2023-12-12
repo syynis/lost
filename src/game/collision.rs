@@ -110,26 +110,30 @@ impl CollisionMap {
         let move_in_dir = |pos, dir| -> IVec2 { pos + IVec2::from(dir) };
         let dest = move_in_dir(pusher_pos, direction);
         let mut moving_entities = Vec::new();
-        if let Some(CollisionEntry::Occupied { entity, kind }) = self.get(dest) {
+        if let Some(CollisionEntry::Occupied {
+            entity: pushed,
+            kind,
+        }) = self.get(dest)
+        {
             match kind {
                 EntityKind::Pushable => {
                     if let Some(dest_entry) = self.get(move_in_dir(dest, direction)) {
                         match dest_entry {
-                            CollisionEntry::Free => moving_entities.push(*entity),
-                            CollisionEntry::Occupied { entity, kind } => match kind {
-                                EntityKind::Obstacle
+                            CollisionEntry::Free => moving_entities.push(*pushed),
+                            CollisionEntry::Occupied { entity: _, kind } => match kind {
+                                EntityKind::Wall
                                 | EntityKind::Pullable
-                                | EntityKind::ObstacleBlock
+                                | EntityKind::Platform
                                 | EntityKind::Pushable => return CollisionResult::Collision,
-                                EntityKind::ObstaclePlayer => moving_entities.push(*entity),
+                                EntityKind::Pit => moving_entities.push(*pushed),
                             },
                         }
                     }
                 }
-                EntityKind::Obstacle | EntityKind::Pullable | EntityKind::ObstaclePlayer => {
+                EntityKind::Wall | EntityKind::Pullable | EntityKind::Pit => {
                     return CollisionResult::Collision
                 }
-                EntityKind::ObstacleBlock => {}
+                EntityKind::Platform => {}
             }
         }
         let opp = move_in_dir(pusher_pos, direction.opposite());
@@ -137,7 +141,7 @@ impl CollisionMap {
             let pull = match entry {
                 CollisionEntry::Free => true,
                 CollisionEntry::Occupied { entity: _, kind } => {
-                    !matches!(kind, EntityKind::ObstacleBlock)
+                    !matches!(kind, EntityKind::Platform)
                 }
             };
             if pull {

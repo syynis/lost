@@ -12,7 +12,7 @@ use thiserror::Error;
 use crate::cleanup::DependOnState;
 
 use super::{
-    collision::init_collision_map, history::History, level_select::CurrentLevel,
+    collision::init_collision_map, history::History, level_select::CurrentLevel, mechanics::Pit,
     player::SpawnPlayer, util::DIRS, EntityKind, GameAssets, GameState, TilePos,
 };
 
@@ -101,7 +101,7 @@ fn spawn_level(
         match tile {
             TileKind::Wall => {
                 cmds.entity(level_root).with_children(|parent| {
-                    parent.spawn((Name::new("Wall"), pos, EntityKind::Obstacle));
+                    parent.spawn((Name::new("Wall"), pos, EntityKind::Wall));
                 });
             }
             TileKind::Floor => {}
@@ -141,12 +141,12 @@ fn spawn_level(
             }
             TileKind::Platform => {
                 cmds.entity(level_root).with_children(|parent| {
-                    parent.spawn((Name::new("Platform"), pos, EntityKind::ObstacleBlock));
+                    parent.spawn((Name::new("Platform"), pos, EntityKind::Platform));
                 });
             }
             TileKind::Pit => {
                 cmds.entity(level_root).with_children(|parent| {
-                    parent.spawn((Name::new("Pit"), pos, EntityKind::ObstaclePlayer));
+                    parent.spawn((Name::new("Pit"), pos, EntityKind::Pit, Pit));
                 });
             }
         }

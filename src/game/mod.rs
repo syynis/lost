@@ -13,6 +13,7 @@ pub mod history;
 pub mod level;
 pub mod level_select;
 pub mod level_transition;
+pub mod mechanics;
 pub mod player;
 pub mod util;
 
@@ -28,6 +29,7 @@ impl Plugin for GamePlugin {
             level::LevelPlugin,
             history::HistoryPlugin,
             history::HistoryComponentPlugin::<TilePos>::default(),
+            mechanics::MechanicsPlugin,
         ));
         app.register_asset_loader(LevelLoader)
             .init_asset::<Levels>();
@@ -133,9 +135,9 @@ impl From<Dir> for IVec2 {
 
 #[derive(Debug, Copy, Clone, Component, Reflect, PartialEq)]
 pub enum EntityKind {
-    Obstacle,
-    ObstaclePlayer,
-    ObstacleBlock,
+    Wall,
+    Pit,
+    Platform,
     Pullable,
     Pushable,
 }
