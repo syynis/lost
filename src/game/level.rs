@@ -124,7 +124,21 @@ fn spawn_level(
                     ));
                 });
             }
-            TileKind::Pullable => {}
+            TileKind::Pullable => {
+                cmds.entity(level_root).with_children(|parent| {
+                    parent.spawn((
+                        Name::new("Pullable"),
+                        pos,
+                        EntityKind::Pullable,
+                        History::<TilePos>::default(),
+                        SpriteBundle {
+                            texture: assets.pullable.clone_weak(),
+                            transform: Transform::from_translation(2. * Vec3::Z),
+                            ..default()
+                        },
+                    ));
+                });
+            }
             TileKind::Platform => {
                 cmds.entity(level_root).with_children(|parent| {
                     parent.spawn((Name::new("Platform"), pos, EntityKind::ObstacleBlock));

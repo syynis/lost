@@ -6,7 +6,7 @@ use leafwing_input_manager::prelude::*;
 use super::{
     collision::CollisionMap,
     history::{HandleHistoryEvents, History},
-    Dir, EntityKind, GameAssets, GameState, TilePos,
+    Dir, GameAssets, GameState, TilePos,
 };
 
 pub struct PlayerPlugin;
@@ -77,7 +77,6 @@ impl Command for SpawnPlayer {
                         ..default()
                     },
                     MovementTimer::default(),
-                    EntityKind::Pushable,
                 ));
             });
     }
@@ -138,8 +137,8 @@ pub fn player_movement(
     let player_pos = dynamic_entities
         .get(player_entity)
         .expect("Player always has tile pos")
-        .0
-        .clone();
+        .0;
+
     for direction in player_actions
         .get_pressed()
         .iter()
@@ -147,7 +146,7 @@ pub fn player_movement(
     {
         movement_timer.reset();
 
-        match collision.push_collision(player_pos, direction) {
+        match collision.player_push_collision(player_entity, player_pos, direction) {
             super::collision::CollisionResult::Push(push) => {
                 let dir_vec = IVec2::from(direction);
                 for e in push {

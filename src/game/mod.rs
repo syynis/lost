@@ -64,6 +64,8 @@ pub struct GameAssets {
     pub player: Handle<Image>,
     #[asset(path = "pushable.png")]
     pub pushable: Handle<Image>,
+    #[asset(path = "pullable.png")]
+    pub pullable: Handle<Image>,
     #[asset(texture_atlas(tile_size_x = 8., tile_size_y = 8., columns = 8, rows = 3))]
     #[asset(path = "tiles.png")]
     pub tiles: Handle<TextureAtlas>,

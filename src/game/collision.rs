@@ -101,71 +101,54 @@ pub enum CollisionResult {
 }
 
 impl CollisionMap {
-    pub fn push_collision(&self, pusher_pos: IVec2, direction: Dir) -> CollisionResult {
-        let Some(CollisionEntry::Occupied {
-            entity: pusher,
-            kind: _,
-        }) = self.get(pusher_pos)
-        else {
-            return CollisionResult::OutOfBounds;
-        };
-
-        let move_in_dir = |pos| -> IVec2 { pos + IVec2::from(direction) };
-        let mut is_player = true;
+    pub fn player_push_collision(
+        &self,
+        pusher: Entity,
+        pusher_pos: IVec2,
+        direction: Dir,
+    ) -> CollisionResult {
+        let move_in_dir = |pos, dir| -> IVec2 { pos + IVec2::from(dir) };
+        let dest = move_in_dir(pusher_pos, direction);
         let mut moving_entities = Vec::new();
-        let mut current_pos = pusher_pos;
-        let mut dest = move_in_dir(current_pos);
-        let mut pusher = pusher;
-        'outer: while let Some(dest_entity) = self.get(dest) {
-            match dest_entity {
-                CollisionEntry::Free => {
-                    moving_entities.push(*pusher);
-                    break;
+        if let Some(CollisionEntry::Occupied { entity, kind }) = self.get(dest) {
+            match kind {
+                EntityKind::Pushable => {
+                    if let Some(dest_entry) = self.get(move_in_dir(dest, direction)) {
+                        match dest_entry {
+                            CollisionEntry::Free => moving_entities.push(*entity),
+                            CollisionEntry::Occupied { entity, kind } => match kind {
+                                EntityKind::Obstacle
+                                | EntityKind::Pullable
+                                | EntityKind::ObstacleBlock
+                                | EntityKind::Pushable => return CollisionResult::Collision,
+                                EntityKind::ObstaclePlayer => moving_entities.push(*entity),
+                            },
+                        }
+                    }
                 }
-                CollisionEntry::Occupied {
-                    entity: pushed,
-                    kind,
-                } => match kind {
-                    EntityKind::Obstacle => return CollisionResult::Collision,
-                    EntityKind::ObstaclePlayer => {
-                        if is_player {
-                            return CollisionResult::Collision;
-                        } else {
-                            moving_entities.push(*pusher);
-                            break 'outer;
-                        }
-                    }
-                    EntityKind::ObstacleBlock => {
-                        if is_player {
-                            moving_entities.push(*pusher);
-                            break 'outer;
-                        } else {
-                            return CollisionResult::Collision;
-                        }
-                    }
-                    EntityKind::Pullable => {
-                        moving_entities.push(*pusher);
-                        if !is_player {
-                            break 'outer;
-                        }
-                        pusher = pushed;
-                        current_pos = dest;
-                        dest = move_in_dir(current_pos);
-                        is_player = false;
-                    }
-                    EntityKind::Pushable => {
-                        moving_entities.push(*pusher);
-                        if !is_player {
-                            break 'outer;
-                        }
-                        pusher = pushed;
-                        current_pos = dest;
-                        dest = move_in_dir(current_pos);
-                        is_player = false;
-                    }
-                },
+                EntityKind::Obstacle | EntityKind::Pullable | EntityKind::ObstaclePlayer => {
+                    return CollisionResult::Collision
+                }
+                EntityKind::ObstacleBlock => {}
             }
         }
+        let opp = move_in_dir(pusher_pos, direction.opposite());
+        if let Some(entry) = self.get(pusher_pos) {
+            let pull = match entry {
+                CollisionEntry::Free => true,
+                CollisionEntry::Occupied { entity: _, kind } => {
+                    !matches!(kind, EntityKind::ObstacleBlock)
+                }
+            };
+            if pull {
+                if let Some(CollisionEntry::Occupied { entity, kind }) = self.get(opp) {
+                    if matches!(kind, EntityKind::Pullable) {
+                        moving_entities.push(*entity);
+                    }
+                }
+            }
+        }
+        moving_entities.push(pusher);
         CollisionResult::Push(moving_entities)
     }
 }
