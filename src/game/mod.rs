@@ -1,10 +1,9 @@
 use bevy::prelude::*;
 use bevy_asset_loader::prelude::*;
-
-use crate::cleanup::cleanup_on_state_change;
+use leafwing_input_manager::prelude::*;
 
 use self::{
-    history::History,
+    history::{History, HistoryEvent, PreviousComponent},
     level::{LevelLoader, Levels},
 };
 
@@ -22,6 +21,7 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
+            InputManagerPlugin::<GameAction>::default(),
             level_select::LevelSelectPlugin,
             level_transition::LevelTransitionPlugin,
             player::PlayerPlugin,
@@ -29,6 +29,7 @@ impl Plugin for GamePlugin {
             level::LevelPlugin,
             history::HistoryPlugin,
             history::HistoryComponentPlugin::<TilePos>::default(),
+            history::PreviousComponentPlugin::<TilePos>::default(),
             mechanics::MechanicsPlugin,
         ));
         app.register_asset_loader(LevelLoader)
@@ -36,6 +37,7 @@ impl Plugin for GamePlugin {
         app.register_type::<TilePos>()
             .register_type::<Dir>()
             .register_type::<History<TilePos>>()
+            .register_type::<PreviousComponent<TilePos>>()
             .register_type::<EntityKind>();
         app.add_state::<GameState>()
             .add_loading_state(
@@ -43,11 +45,14 @@ impl Plugin for GamePlugin {
                     .continue_to_state(GameState::LevelSelect),
             )
             .add_collection_to_loading_state::<_, GameAssets>(GameState::AssetLoading);
-        app.add_systems(
-            StateTransition,
-            cleanup_on_state_change::<GameState>.before(apply_state_transition::<GameState>),
-        )
-        .add_systems(PostUpdate, copy_pos_to_transform);
+        app.add_systems(Startup, setup)
+            .add_systems(Update, history.run_if(in_state(GameState::Play)))
+            .add_systems(
+                StateTransition,
+                crate::cleanup::cleanup_on_state_change::<GameState>
+                    .before(apply_state_transition::<GameState>),
+            )
+            .add_systems(PostUpdate, copy_pos_to_transform);
     }
 }
 
@@ -83,6 +88,46 @@ pub fn copy_pos_to_transform(mut query: Query<(&TilePos, &mut Transform), Change
 
         transform.translation = new;
     }
+}
+
+fn setup(mut cmds: Commands) {
+    cmds.spawn((
+        (InputManagerBundle::<GameAction> {
+            input_map: game_actions(),
+            ..default()
+        },),
+        Name::new("GameActions"),
+    ));
+}
+
+fn history(
+    actions: Query<&ActionState<GameAction>>,
+    mut history_events: EventWriter<HistoryEvent>,
+) {
+    let Ok(actions) = actions.get_single() else {
+        return;
+    };
+    if actions.just_pressed(GameAction::Undo) {
+        history_events.send(HistoryEvent::Rewind);
+    } else if actions.just_pressed(GameAction::Reset) {
+        history_events.send(HistoryEvent::Reset);
+    }
+}
+
+#[derive(Actionlike, Clone, Copy, Hash, Debug, PartialEq, Eq, Reflect)]
+pub enum GameAction {
+    Undo,
+    Reset,
+}
+
+fn game_actions() -> InputMap<GameAction> {
+    use GameAction::*;
+    let mut input_map = InputMap::default();
+
+    input_map.insert(KeyCode::E, Undo);
+    input_map.insert(KeyCode::R, Reset);
+
+    input_map
 }
 
 #[derive(Component, Default, Clone, Copy, Debug, PartialEq, Eq, Deref, DerefMut, Reflect)]

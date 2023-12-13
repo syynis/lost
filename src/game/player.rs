@@ -5,7 +5,7 @@ use leafwing_input_manager::prelude::*;
 
 use super::{
     collision::CollisionMap,
-    history::{HandleHistoryEvents, History},
+    history::{HandleHistoryEvents, HistoryBundle, HistoryEvent},
     Dir, GameAssets, GameState, TilePos,
 };
 
@@ -13,7 +13,7 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(InputManagerPlugin::<PlayerActions>::default())
+        app.add_plugins(InputManagerPlugin::<PlayerAction>::default())
             .add_systems(Startup, setup)
             .add_systems(
                 Update,
@@ -28,20 +28,20 @@ impl Plugin for PlayerPlugin {
 pub struct Player;
 
 #[derive(Actionlike, Clone, Copy, Hash, Debug, PartialEq, Eq, Reflect)]
-pub enum PlayerActions {
+pub enum PlayerAction {
     Up,
     Right,
     Down,
     Left,
 }
 
-impl From<PlayerActions> for Dir {
-    fn from(value: PlayerActions) -> Dir {
+impl From<PlayerAction> for Dir {
+    fn from(value: PlayerAction) -> Dir {
         match value {
-            PlayerActions::Up => Dir::Up,
-            PlayerActions::Left => Dir::Left,
-            PlayerActions::Down => Dir::Down,
-            PlayerActions::Right => Dir::Right,
+            PlayerAction::Up => Dir::Up,
+            PlayerAction::Left => Dir::Left,
+            PlayerAction::Down => Dir::Down,
+            PlayerAction::Right => Dir::Right,
         }
     }
 }
@@ -70,7 +70,7 @@ impl Command for SpawnPlayer {
                     Name::new("Player"),
                     Player,
                     self.pos,
-                    History::<TilePos>::default(),
+                    HistoryBundle::<TilePos>::default(),
                     SpriteBundle {
                         texture,
                         transform: Transform::from_translation(2. * Vec3::Z),
@@ -84,7 +84,7 @@ impl Command for SpawnPlayer {
 
 fn setup(mut cmds: Commands) {
     cmds.spawn((
-        (InputManagerBundle::<PlayerActions> {
+        (InputManagerBundle::<PlayerAction> {
             input_map: player_actions(),
             ..default()
         },),
@@ -92,8 +92,8 @@ fn setup(mut cmds: Commands) {
     ));
 }
 
-fn player_actions() -> InputMap<PlayerActions> {
-    use PlayerActions::*;
+fn player_actions() -> InputMap<PlayerAction> {
+    use PlayerAction::*;
     let mut input_map = InputMap::default();
 
     input_map.insert(KeyCode::W, Up);
@@ -116,7 +116,8 @@ impl Default for MovementTimer {
 pub fn player_movement(
     mut player_q: Query<(Entity, &mut MovementTimer), With<Player>>,
     mut dynamic_entities: Query<&mut TilePos>,
-    player_actions: Query<&ActionState<PlayerActions>>,
+    mut history_events: EventWriter<HistoryEvent>,
+    player_actions: Query<&ActionState<PlayerAction>>,
     time: Res<Time>,
     collision: Res<CollisionMap>,
 ) {
@@ -160,5 +161,9 @@ pub fn player_movement(
                 log::debug!("Can't move");
             }
         }
+    }
+
+    if !movement_timer.finished() {
+        history_events.send(HistoryEvent::Record);
     }
 }

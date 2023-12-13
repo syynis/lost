@@ -12,8 +12,8 @@ use thiserror::Error;
 use crate::cleanup::DependOnState;
 
 use super::{
-    collision::init_collision_map, history::History, level_select::CurrentLevel, mechanics::Pit,
-    player::SpawnPlayer, util::DIRS, EntityKind, GameAssets, GameState, TilePos,
+    collision::init_collision_map, history::HistoryBundle, level_select::CurrentLevel,
+    mechanics::Pit, player::SpawnPlayer, util::DIRS, EntityKind, GameAssets, GameState, TilePos,
 };
 
 pub struct LevelPlugin;
@@ -115,7 +115,7 @@ fn spawn_level(
                         Name::new("Pushable"),
                         pos,
                         EntityKind::Pushable,
-                        History::<TilePos>::default(),
+                        HistoryBundle::<TilePos>::default(),
                         SpriteBundle {
                             texture: assets.pushable.clone_weak(),
                             transform: Transform::from_translation(2. * Vec3::Z),
@@ -130,7 +130,7 @@ fn spawn_level(
                         Name::new("Pullable"),
                         pos,
                         EntityKind::Pullable,
-                        History::<TilePos>::default(),
+                        HistoryBundle::<TilePos>::default(),
                         SpriteBundle {
                             texture: assets.pullable.clone_weak(),
                             transform: Transform::from_translation(2. * Vec3::Z),
