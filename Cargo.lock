@@ -873,9 +873,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_nine_slice_ui"
-version = "0.2.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9efa52df15a42a5a0a52629830417109a24c193449311547d821a7b67e360679"
+checksum = "d3e1e62bd632950e2e8017d75485f7b4b70932de94526951d86b1ffc87dbd4eb"
 dependencies = [
  "bevy",
 ]

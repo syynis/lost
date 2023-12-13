@@ -1,5 +1,5 @@
 use bevy::{ecs::system::Command, prelude::*};
-use bevy_nine_slice_ui::NineSliceTexture;
+use bevy_nine_slice_ui::{NineSliceUiMaterialBundle, NineSliceUiTexture};
 
 #[derive(Component)]
 pub struct NineSliceButtonText<T: Component + Into<String> + Clone> {
@@ -14,14 +14,16 @@ impl<T: Component + Into<String> + Clone> Command for NineSliceButtonText<T> {
         world.entity_mut(self.parent).with_children(|parent| {
             parent
                 .spawn((
-                    NodeBundle {
+                    NineSliceUiMaterialBundle {
                         style: self.style,
+                        nine_slice_texture: NineSliceUiTexture::from_image(
+                            self.texture.clone_weak(),
+                        ),
                         focus_policy: bevy::ui::FocusPolicy::Block,
                         ..default()
                     },
                     Interaction::default(),
                     self.button.clone(),
-                    NineSliceTexture::new(self.texture.clone_weak()),
                 ))
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(

@@ -36,6 +36,7 @@ fn main() {
             .set(ImagePlugin::default_nearest())
             .set(log_plugin),
         game::GamePlugin,
+        bevy_nine_slice_ui::NineSliceUiPlugin::default(),
     ))
     .insert_resource(ClearColor(Color::ANTIQUE_WHITE))
     .insert_resource(Msaa::Off)
