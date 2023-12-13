@@ -1,9 +1,25 @@
+use std::marker::PhantomData;
+
 use bevy::prelude::*;
 
 pub fn cleanup_all_with<T: Component>(mut cmds: Commands, query: Query<Entity, With<T>>) {
     query
         .iter()
         .for_each(|e| cmds.entity(e).despawn_recursive());
+}
+
+#[derive(Default)]
+pub struct StateCleanupPlugin<S: States> {
+    phantom: PhantomData<S>,
+}
+
+impl<S: States> Plugin for StateCleanupPlugin<S> {
+    fn build(&self, app: &mut App) {
+        app.add_systems(
+            StateTransition,
+            cleanup_on_state_change::<S>.before(apply_state_transition::<S>),
+        );
+    }
 }
 
 #[derive(Component, Deref, DerefMut)]
@@ -15,7 +31,7 @@ impl<T: States> DependOnState<T> {
     }
 }
 
-pub fn cleanup_on_state_change<T: States>(
+fn cleanup_on_state_change<T: States>(
     mut cmds: Commands,
     query: Query<(Entity, &DependOnState<T>)>,
     next_state: Res<NextState<T>>,

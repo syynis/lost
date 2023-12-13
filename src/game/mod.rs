@@ -2,6 +2,8 @@ use bevy::prelude::*;
 use bevy_asset_loader::prelude::*;
 use leafwing_input_manager::prelude::*;
 
+use crate::cleanup;
+
 use self::{
     history::{History, HistoryEvent, PreviousComponent},
     level::{LevelLoader, Levels},
@@ -31,6 +33,7 @@ impl Plugin for GamePlugin {
             history::HistoryComponentPlugin::<TilePos>::default(),
             history::PreviousComponentPlugin::<TilePos>::default(),
             mechanics::MechanicsPlugin,
+            cleanup::StateCleanupPlugin::<GameState>::default(),
         ));
         app.register_asset_loader(LevelLoader)
             .init_asset::<Levels>();
@@ -47,11 +50,6 @@ impl Plugin for GamePlugin {
             .add_collection_to_loading_state::<_, GameAssets>(GameState::AssetLoading);
         app.add_systems(Startup, setup)
             .add_systems(Update, history.run_if(in_state(GameState::Play)))
-            .add_systems(
-                StateTransition,
-                crate::cleanup::cleanup_on_state_change::<GameState>
-                    .before(apply_state_transition::<GameState>),
-            )
             .add_systems(PostUpdate, copy_pos_to_transform);
     }
 }
