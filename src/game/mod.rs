@@ -49,7 +49,10 @@ impl Plugin for GamePlugin {
             )
             .add_collection_to_loading_state::<_, GameAssets>(GameState::AssetLoading);
         app.add_systems(Startup, setup)
-            .add_systems(Update, history.run_if(in_state(GameState::Play)))
+            .add_systems(
+                Update,
+                (history, navigation).run_if(in_state(GameState::Play)),
+            )
             .add_systems(PostUpdate, copy_pos_to_transform);
     }
 }
@@ -98,6 +101,19 @@ fn setup(mut cmds: Commands) {
     ));
 }
 
+fn navigation(
+    actions: Query<&ActionState<GameAction>>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
+    let Ok(actions) = actions.get_single() else {
+        return;
+    };
+
+    if actions.just_pressed(GameAction::ToLevelSelect) {
+        next_state.set(GameState::LevelSelect);
+    }
+}
+
 fn history(
     actions: Query<&ActionState<GameAction>>,
     mut history_events: EventWriter<HistoryEvent>,
@@ -116,6 +132,7 @@ fn history(
 pub enum GameAction {
     Undo,
     Reset,
+    ToLevelSelect,
 }
 
 fn game_actions() -> InputMap<GameAction> {
@@ -124,6 +141,7 @@ fn game_actions() -> InputMap<GameAction> {
 
     input_map.insert(KeyCode::E, Undo);
     input_map.insert(KeyCode::R, Reset);
+    input_map.insert(KeyCode::G, ToLevelSelect);
 
     input_map
 }
