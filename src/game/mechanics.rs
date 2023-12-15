@@ -1,4 +1,5 @@
 use bevy::{log, prelude::*, utils::hashbrown::HashSet};
+use bevy_simple_tilemap::TileMap;
 
 use super::{
     collision::CollisionMap,
@@ -23,11 +24,25 @@ pub struct Pit;
 fn despawn_on_pit(
     mut cmds: Commands,
     q: Query<(Entity, &TilePos, &EntityKind)>,
-    pit: Query<&TilePos, With<Pit>>,
+    pit: Query<(Entity, &TilePos), With<Pit>>,
+    mut tilemap: Query<&mut TileMap>,
 ) {
+    let Ok(mut tilemap) = tilemap.get_single_mut() else {
+        return;
+    };
     for (entity, pos, kind) in q.iter() {
-        if matches!(kind, EntityKind::Pushable) && pit.iter().any(|pit_pos| pit_pos == pos) {
-            cmds.entity(entity).despawn_recursive();
+        if matches!(kind, EntityKind::Pushable) {
+            if let Some((pit_entity, _)) = pit.iter().find(|(_, pit_pos)| *pit_pos == pos) {
+                cmds.entity(entity).despawn_recursive();
+                cmds.entity(pit_entity).despawn_recursive();
+                tilemap.set_tile(
+                    pos.extend(1),
+                    Some(bevy_simple_tilemap::Tile {
+                        sprite_index: 16,
+                        ..default()
+                    }),
+                );
+            }
         }
     }
 }
