@@ -140,6 +140,7 @@ pub fn player_movement(
         .expect("Player always has tile pos")
         .0;
 
+    let mut moved = false;
     for direction in player_actions
         .get_pressed()
         .iter()
@@ -149,6 +150,7 @@ pub fn player_movement(
 
         match collision.player_push_collision(player_entity, player_pos, direction) {
             super::collision::CollisionResult::Push(push) => {
+                moved = true;
                 let dir_vec = IVec2::from(direction);
                 for e in push {
                     dynamic_entities
@@ -163,7 +165,7 @@ pub fn player_movement(
         }
     }
 
-    if !movement_timer.finished() {
+    if moved {
         history_events.send(HistoryEvent::Record);
     }
 }
