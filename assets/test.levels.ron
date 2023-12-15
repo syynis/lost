@@ -1,6 +1,6 @@
 ([
 (
-    // All in a row; All in corner
+    // All in a row. All in corner
    "#######
     #_#_#b#
     #_#b#_#
@@ -19,7 +19,7 @@
     ########"
 ),
 (
-    // What happens with a single block
+    // What happens with a single block. Corner
    "######
     #____#
     #__b_#
@@ -28,7 +28,7 @@
     ######"
 ),
 (
-    // Corner; many possibilities that don't require row;
+    // Corner. Many possibilities that don't require row
    "############
     ####_____###
     ####__b__###
@@ -42,7 +42,18 @@
     ############"
 ),
 (
-    // All in one row, all against wall, (harder) unreachable
+    // Introduction to platforms. Corner. Rows easily disprovable
+   "#########
+    #-______#
+    #__b____#
+    ##-##-###
+    #_______#
+    #__-b@__#
+    ######--#
+    #########"
+),
+(
+    // Rows. All against wall. Has hint for unreachable
    "#########
     #_@-___##
     #-###__##
@@ -52,6 +63,45 @@
     #_b_#_b_#
     #-__-___#
     #########"
+),
+(
+    // Introduces pits. Very simple solution 
+    // Has clever solution by moving ball back to player spawn
+   "#########
+    #---#___#
+    #-_b#_b_#
+    #@__O___#
+    #-__#####
+    #---#####
+    #########"
+),
+(
+    // Block pair next to wall. Very simple to solve
+   "#######
+    #__b__#
+    #OOOOO#
+    #_b_b_#
+    #__@__#
+    #######"
+),
+(
+    // Introduces Pullables. Corner. Next to wall
+   "###########
+    #_____#####
+    #_________#
+    ####_@###-#
+    #####pb___#
+    #####_____#
+    ###########"
+),
+(
+    // Cool level. Only win by making a 2x2 block. A bit too hard
+   "#######
+    #_@-_p#
+    #_b___#
+    #__b__#
+    #_p_-_#
+    #######"
 ),
 (
     // Template
