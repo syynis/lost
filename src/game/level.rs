@@ -13,7 +13,7 @@ use crate::cleanup::DependOnState;
 
 use super::{
     collision::init_collision_map, history::HistoryBundle, level_select::CurrentLevel,
-    mechanics::Pit, player::SpawnPlayer, util::DIRS, EntityKind, GameAssets, GameState, TilePos,
+    player::SpawnPlayer, util::DIRS, EntityKind, GameAssets, GameState, TilePos,
 };
 
 pub struct LevelPlugin;
@@ -99,9 +99,9 @@ fn spawn_level(
         ));
 
         match tile {
-            TileKind::Wall => {
+            TileKind::Wall | TileKind::Platform | TileKind::Pit => {
                 cmds.entity(level_root).with_children(|parent| {
-                    parent.spawn((Name::new("Wall"), pos, EntityKind::Wall));
+                    parent.spawn((pos, tile.entity_kind().unwrap()));
                 });
             }
             TileKind::Floor => {}
@@ -109,44 +109,13 @@ fn spawn_level(
                 pos,
                 tilemap_entity: level_root,
             }),
-            TileKind::Pushable => {
+            TileKind::Pushable | TileKind::Pullable => {
                 cmds.entity(level_root).with_children(|parent| {
                     parent.spawn((
-                        Name::new("Pushable"),
                         pos,
-                        EntityKind::Pushable,
+                        tile.entity_kind().unwrap(),
                         HistoryBundle::<TilePos>::default(),
-                        SpriteBundle {
-                            texture: assets.pushable.clone_weak(),
-                            transform: Transform::from_translation(2. * Vec3::Z),
-                            ..default()
-                        },
                     ));
-                });
-            }
-            TileKind::Pullable => {
-                cmds.entity(level_root).with_children(|parent| {
-                    parent.spawn((
-                        Name::new("Pullable"),
-                        pos,
-                        EntityKind::Pullable,
-                        HistoryBundle::<TilePos>::default(),
-                        SpriteBundle {
-                            texture: assets.pullable.clone_weak(),
-                            transform: Transform::from_translation(2. * Vec3::Z),
-                            ..default()
-                        },
-                    ));
-                });
-            }
-            TileKind::Platform => {
-                cmds.entity(level_root).with_children(|parent| {
-                    parent.spawn((Name::new("Platform"), pos, EntityKind::Platform));
-                });
-            }
-            TileKind::Pit => {
-                cmds.entity(level_root).with_children(|parent| {
-                    parent.spawn((Name::new("Pit"), pos, EntityKind::Pit, Pit));
                 });
             }
         }
@@ -310,6 +279,18 @@ impl TileKind {
             TileKind::Wall => calculate_wall_index(**pos, level),
             TileKind::Platform => (17, TileFlags::empty()),
             TileKind::Pit => (18, TileFlags::empty()),
+        }
+    }
+
+    pub fn entity_kind(&self) -> Option<EntityKind> {
+        match self {
+            TileKind::Wall => Some(EntityKind::Wall),
+            TileKind::Floor => None,
+            TileKind::Player => None,
+            TileKind::Pushable => Some(EntityKind::Pushable),
+            TileKind::Pullable => Some(EntityKind::Pullable),
+            TileKind::Platform => Some(EntityKind::Platform),
+            TileKind::Pit => Some(EntityKind::Pit),
         }
     }
 }

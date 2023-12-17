@@ -7,6 +7,7 @@ use crate::cleanup;
 use self::{
     history::{History, HistoryEvent, PreviousComponent},
     level::{LevelLoader, Levels},
+    mechanics::Pit,
 };
 
 pub mod collision;
@@ -53,7 +54,16 @@ impl Plugin for GamePlugin {
                 Update,
                 (history, navigation).run_if(in_state(GameState::Play)),
             )
-            .add_systems(PostUpdate, copy_pos_to_transform);
+            .add_systems(
+                PostUpdate,
+                (
+                    entity_kind_components,
+                    apply_deferred,
+                    copy_pos_to_transform,
+                )
+                    .chain()
+                    .run_if(in_state(GameState::Play)),
+            );
     }
 }
 
@@ -83,6 +93,45 @@ pub struct GameAssets {
     pub levels: Handle<Levels>,
 }
 
+pub fn entity_kind_components(
+    mut cmds: Commands,
+    query: Query<(Entity, &EntityKind), Added<EntityKind>>,
+    assets: Res<GameAssets>,
+) {
+    for (entity, kind) in query.iter() {
+        match kind {
+            EntityKind::Wall => {
+                cmds.entity(entity).insert(Name::new("Wall"));
+            }
+            EntityKind::Pit => {
+                cmds.entity(entity).insert((Name::new("Pit"), Pit));
+            }
+            EntityKind::Platform => {
+                cmds.entity(entity).insert(Name::new("Platform"));
+            }
+            EntityKind::Pullable => {
+                cmds.entity(entity).insert((
+                    Name::new("Pullable"),
+                    SpriteBundle {
+                        texture: assets.pullable.clone_weak(),
+                        transform: Transform::from_translation(2. * Vec3::Z),
+                        ..default()
+                    },
+                ));
+            }
+            EntityKind::Pushable => {
+                cmds.entity(entity).insert((
+                    Name::new("Pushable"),
+                    SpriteBundle {
+                        texture: assets.pushable.clone_weak(),
+                        transform: Transform::from_translation(2. * Vec3::Z),
+                        ..default()
+                    },
+                ));
+            }
+        }
+    }
+}
 pub fn copy_pos_to_transform(mut query: Query<(&TilePos, &mut Transform), Changed<TilePos>>) {
     for (pos, mut transform) in query.iter_mut() {
         let new = pos.wpos().extend(transform.translation.z);
