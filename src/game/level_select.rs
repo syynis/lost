@@ -2,9 +2,11 @@ use bevy::prelude::*;
 
 use crate::{
     cleanup::DependOnState,
-    game::{level::Levels, GameAssets, GameState},
+    game::{GameAssets, GameState},
     ui::NineSliceButtonText,
 };
+
+use super::level::LevelData;
 
 pub struct LevelSelectPlugin;
 
@@ -50,7 +52,7 @@ fn handle_buttons(
         });
 }
 
-fn spawn_level_select(mut cmds: Commands, assets: Res<GameAssets>, levels: Res<Assets<Levels>>) {
+fn spawn_level_select(mut cmds: Commands, level_data: LevelData, assets: Res<GameAssets>) {
     let button_texture = assets.button.clone_weak();
     let button_style = Style {
         width: Val::Px(75.0),
@@ -61,10 +63,7 @@ fn spawn_level_select(mut cmds: Commands, assets: Res<GameAssets>, levels: Res<A
         border: UiRect::all(Val::Px(2.)),
         ..default()
     };
-    let amount_levels = levels
-        .get(&assets.levels)
-        .expect("Level assets should be loaded")
-        .len();
+    let amount_levels = level_data.amount_levels();
     let cols = 5;
     let rows = (amount_levels / cols) + 1;
 

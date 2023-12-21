@@ -6,7 +6,7 @@ use leafwing_input_manager::prelude::*;
 use super::{
     collision::CollisionMap,
     history::{HandleHistoryEvents, HistoryBundle, HistoryEvent},
-    Dir, GameAssets, GameState, TilePos,
+    Dir, GameAssets, GameState, SpriteOffset, TilePos,
 };
 
 pub struct PlayerPlugin;
@@ -73,9 +73,9 @@ impl Command for SpawnPlayer {
                     HistoryBundle::<TilePos>::default(),
                     SpriteBundle {
                         texture,
-                        transform: Transform::from_translation(2. * Vec3::Z),
                         ..default()
                     },
+                    SpriteOffset(Vec2::Y * 4.),
                     MovementTimer::default(),
                 ));
             });

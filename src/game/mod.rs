@@ -6,7 +6,7 @@ use crate::cleanup;
 
 use self::{
     history::{History, HistoryEvent, PreviousComponent},
-    level::{LevelLoader, Levels},
+    level::{LevelData, LevelLoader, Levels},
     mechanics::Pit,
 };
 
@@ -84,7 +84,7 @@ pub struct GameAssets {
     pub pushable: Handle<Image>,
     #[asset(path = "pullable.png")]
     pub pullable: Handle<Image>,
-    #[asset(texture_atlas(tile_size_x = 8., tile_size_y = 8., columns = 8, rows = 3))]
+    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 8, rows = 3))]
     #[asset(path = "tiles.png")]
     pub tiles: Handle<TextureAtlas>,
     #[asset(path = "button.png")]
@@ -114,7 +114,6 @@ pub fn entity_kind_components(
                     Name::new("Pullable"),
                     SpriteBundle {
                         texture: assets.pullable.clone_weak(),
-                        transform: Transform::from_translation(2. * Vec3::Z),
                         ..default()
                     },
                 ));
@@ -124,7 +123,6 @@ pub fn entity_kind_components(
                     Name::new("Pushable"),
                     SpriteBundle {
                         texture: assets.pushable.clone_weak(),
-                        transform: Transform::from_translation(2. * Vec3::Z),
                         ..default()
                     },
                 ));
@@ -132,11 +130,14 @@ pub fn entity_kind_components(
         }
     }
 }
-pub fn copy_pos_to_transform(mut query: Query<(&TilePos, &mut Transform), Changed<TilePos>>) {
-    for (pos, mut transform) in query.iter_mut() {
-        let new = pos.wpos().extend(transform.translation.z);
+pub fn copy_pos_to_transform(
+    level_data: LevelData,
+    mut query: Query<(&TilePos, &mut Transform, Option<&SpriteOffset>), Changed<TilePos>>,
+) {
+    for (pos, mut transform, offset) in query.iter_mut() {
+        let new_pos = pos.wpos() + offset.map_or(Vec2::ZERO, |offset| **offset);
 
-        transform.translation = new;
+        transform.translation = new_pos.extend(level_data.size().y as f32 - pos.y as f32);
     }
 }
 
@@ -208,7 +209,7 @@ impl TilePos {
     }
 
     pub fn wpos(&self) -> Vec2 {
-        self.as_vec2() * 8.
+        self.as_vec2() * 16.
     }
 }
 
@@ -242,6 +243,9 @@ impl From<Dir> for IVec2 {
         }
     }
 }
+
+#[derive(Component, Deref, DerefMut, Default, Reflect, Clone, Copy)]
+pub struct SpriteOffset(pub Vec2);
 
 #[derive(Debug, Copy, Clone, Component, Reflect, PartialEq)]
 pub enum EntityKind {

@@ -1,5 +1,6 @@
 use bevy::{
     asset::{AssetLoader, AsyncReadExt},
+    ecs::system::SystemParam,
     prelude::*,
     reflect::{TypePath, TypeUuid},
 };
@@ -40,23 +41,44 @@ impl Plugin for LevelPlugin {
     }
 }
 
+#[derive(SystemParam)]
+pub struct LevelData<'w> {
+    current_level: Res<'w, CurrentLevel>,
+    levels: Res<'w, Assets<Levels>>,
+    assets: Res<'w, GameAssets>,
+}
+
+impl<'w> LevelData<'w> {
+    pub fn levels(&self) -> &Levels {
+        self.levels
+            .get(&self.assets.levels)
+            .expect("Level handle should be loaded")
+    }
+
+    pub fn current_level_data(&self) -> &Level {
+        self.levels()
+            .get(self.current_level())
+            .expect("Current level should only ever be set to a valid level")
+    }
+
+    pub fn current_level(&self) -> usize {
+        **self.current_level
+    }
+
+    pub fn size(&self) -> UVec2 {
+        self.current_level_data().size
+    }
+
+    pub fn amount_levels(&self) -> usize {
+        self.levels().len()
+    }
+}
+
 #[derive(Component)]
 pub struct LevelRoot;
 
-fn spawn_level(
-    mut cmds: Commands,
-    current_level: Res<CurrentLevel>,
-    levels_assets: Res<Assets<Levels>>,
-    assets: Res<GameAssets>,
-) {
-    let levels_handle = &assets.levels;
-
-    let levels = levels_assets
-        .get(levels_handle)
-        .expect("Level handle should be loaded");
-    let level = levels
-        .get(**current_level)
-        .expect("Current level should only ever be set to a valid level");
+fn spawn_level(mut cmds: Commands, level_data: LevelData, assets: Res<GameAssets>) {
+    let level = level_data.current_level_data();
 
     let level_root = cmds
         .spawn((
@@ -68,39 +90,47 @@ fn spawn_level(
         ))
         .id();
     let tilemap_entity = cmds.spawn_empty().id();
+    let wall_entity = cmds.spawn_empty().id();
+    let sub_wall_entity = cmds.spawn_empty().id();
+
     let mut tiles = Vec::new();
+    let mut wall_tiles = Vec::new();
+    let mut sub_wall_tiles = Vec::new();
     for (idx, tile) in level.tiles.iter().enumerate() {
         let x = idx as i32 % level.size.x as i32;
         let y = idx as i32 / level.size.x as i32;
         let pos = TilePos(IVec2::new(x, y));
 
-        let (index, flip) = tile.index_flip(&pos, level);
+        let (sprite_index, flags) = tile.index_flip(&pos, level);
 
         // Tile is not walkable and above us is static tile
-        /*
         if !tile.is_static() && level.tiles[idx + level.size.x as usize].is_static() {
-            tiles.push((
-                IVec3::new(x, y, 0),
+            sub_wall_tiles.push((
+                IVec3::new(x, y, y),
                 Some(Tile {
                     sprite_index: 14,
                     ..default()
                 }),
             ));
         }
-            */
 
-        tiles.push((
-            IVec3::new(x, y, 0),
+        let elem = (
+            IVec3::new(x, y, y),
             Some(Tile {
-                sprite_index: index,
-                flags: flip,
+                sprite_index,
+                flags,
                 ..default()
             }),
-        ));
+        );
+        if tile.is_static() {
+            wall_tiles.push(elem);
+        } else {
+            tiles.push(elem);
+        }
 
         match tile {
             TileKind::Wall | TileKind::Platform | TileKind::Pit => {
-                cmds.entity(level_root).with_children(|parent| {
+                cmds.entity(wall_entity).with_children(|parent| {
                     parent.spawn((pos, tile.entity_kind().unwrap()));
                 });
             }
@@ -122,20 +152,54 @@ fn spawn_level(
     }
 
     let mut tilemap = TileMap::default();
+    let mut walls = TileMap::default();
+    let mut sub_walls = TileMap::default();
     tilemap.set_tiles(tiles);
+    walls.set_tiles(wall_tiles);
+    sub_walls.set_tiles(sub_wall_tiles);
     let tilemap_entity = cmds
         .entity(tilemap_entity)
         .insert((
             TileMapBundle {
                 tilemap,
                 texture_atlas: assets.tiles.clone_weak(),
+                transform: Transform::from_translation(Vec3::NEG_Z),
                 ..default()
             },
-            Name::new(format!("Level {}", **current_level)),
+            Name::new(format!("Level {}", level_data.current_level())),
+        ))
+        .id();
+
+    let walls_entity = cmds
+        .entity(wall_entity)
+        .insert((
+            TileMapBundle {
+                tilemap: walls,
+                texture_atlas: assets.tiles.clone_weak(),
+                transform: Transform::from_translation(
+                    8. * Vec3::Y + level.size.y as f32 * Vec3::Z,
+                ),
+                ..default()
+            },
+            Name::new("Walls"),
+        ))
+        .id();
+    let sub_walls_entity = cmds
+        .entity(sub_wall_entity)
+        .insert((
+            TileMapBundle {
+                tilemap: sub_walls,
+                texture_atlas: assets.tiles.clone_weak(),
+                transform: Transform::from_translation(8. * Vec3::Y + Vec3::NEG_Z * 0.5),
+                ..default()
+            },
+            Name::new("Walls"),
         ))
         .id();
 
     cmds.entity(level_root).add_child(tilemap_entity);
+    cmds.entity(level_root).add_child(walls_entity);
+    cmds.entity(level_root).add_child(sub_walls_entity);
 }
 
 fn calculate_wall_index(pos: IVec2, level: &Level) -> (u32, TileFlags) {
