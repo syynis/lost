@@ -13,8 +13,8 @@ impl Plugin for HistoryPlugin {
             .add_event::<HistoryEvent>()
             .add_systems(
                 OnTransition {
-                    from: GameState::LevelTransition,
-                    to: GameState::Play,
+                    exited: GameState::LevelTransition,
+                    entered: GameState::Play,
                 },
                 reset_time,
             )

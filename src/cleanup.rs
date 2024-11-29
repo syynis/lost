@@ -1,6 +1,12 @@
 use std::marker::PhantomData;
 
-use bevy::prelude::*;
+use bevy::{
+    app::MainScheduleOrder, ecs::schedule::ScheduleLabel, prelude::*,
+    state::state::FreelyMutableState,
+};
+
+#[derive(ScheduleLabel, Debug, Hash, PartialEq, Eq, Clone)]
+struct BeforeStateTransition;
 
 pub fn cleanup_all_with<T: Component>(mut cmds: Commands, query: Query<Entity, With<T>>) {
     query
@@ -9,36 +15,37 @@ pub fn cleanup_all_with<T: Component>(mut cmds: Commands, query: Query<Entity, W
 }
 
 #[derive(Default)]
-pub struct StateCleanupPlugin<S: States> {
+pub struct StateCleanupPlugin<S: States + FreelyMutableState> {
     phantom: PhantomData<S>,
 }
 
-impl<S: States> Plugin for StateCleanupPlugin<S> {
+impl<S: States + FreelyMutableState> Plugin for StateCleanupPlugin<S> {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            StateTransition,
-            cleanup_on_state_change::<S>.before(apply_state_transition::<S>),
-        );
+        app.add_schedule(Schedule::new(BeforeStateTransition));
+        app.add_systems(BeforeStateTransition, cleanup_on_state_change::<S>);
+        app.world_mut()
+            .resource_mut::<MainScheduleOrder>()
+            .insert_before(StateTransition, BeforeStateTransition);
     }
 }
 
 #[derive(Component, Deref, DerefMut)]
-pub struct DependOnState<T: States>(pub Vec<T>);
+pub struct DependOnState<T: States + FreelyMutableState>(pub Vec<T>);
 
-impl<T: States> DependOnState<T> {
+impl<T: States + FreelyMutableState> DependOnState<T> {
     pub fn single(state: T) -> Self {
         Self(vec![state])
     }
 }
 
-fn cleanup_on_state_change<T: States>(
+fn cleanup_on_state_change<T: States + FreelyMutableState>(
     mut cmds: Commands,
     query: Query<(Entity, &DependOnState<T>)>,
     next_state: Res<NextState<T>>,
     current_state: Res<State<T>>,
     names: Query<&Name>,
 ) {
-    let Some(next_state) = &next_state.0 else {
+    let NextState::Pending(next_state) = next_state.into_inner() else {
         return;
     };
 

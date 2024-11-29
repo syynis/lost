@@ -43,12 +43,14 @@ impl Plugin for GamePlugin {
             .register_type::<History<TilePos>>()
             .register_type::<PreviousComponent<TilePos>>()
             .register_type::<EntityKind>();
-        app.add_state::<GameState>()
+        app.init_state::<GameState>()
             .add_loading_state(
                 LoadingState::new(GameState::AssetLoading)
                     .continue_to_state(GameState::LevelSelect),
             )
-            .add_collection_to_loading_state::<_, GameAssets>(GameState::AssetLoading);
+            .configure_loading_state(
+                LoadingStateConfig::new(GameState::AssetLoading).load_collection::<GameAssets>(),
+            );
         app.add_systems(Startup, setup)
             .add_systems(
                 Update,
@@ -84,9 +86,10 @@ pub struct GameAssets {
     pub pushable: Handle<Image>,
     #[asset(path = "pullable.png")]
     pub pullable: Handle<Image>,
-    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 8, rows = 3))]
+    #[asset(texture_atlas(tile_size_x = 16, tile_size_y = 16, columns = 8, rows = 3))]
+    pub layout: Handle<TextureAtlasLayout>,
     #[asset(path = "tiles.png")]
-    pub tiles: Handle<TextureAtlas>,
+    pub tiles: Handle<Image>,
     #[asset(path = "button.png")]
     pub button: Handle<Image>,
     #[asset(path = "test.levels.ron")]
@@ -159,7 +162,7 @@ fn navigation(
         return;
     };
 
-    if actions.just_pressed(GameAction::ToLevelSelect) {
+    if actions.just_pressed(&GameAction::ToLevelSelect) {
         next_state.set(GameState::LevelSelect);
     }
 }
@@ -171,9 +174,9 @@ fn history(
     let Ok(actions) = actions.get_single() else {
         return;
     };
-    if actions.just_pressed(GameAction::Undo) {
+    if actions.just_pressed(&GameAction::Undo) {
         history_events.send(HistoryEvent::Rewind);
-    } else if actions.just_pressed(GameAction::Reset) {
+    } else if actions.just_pressed(&GameAction::Reset) {
         history_events.send(HistoryEvent::Reset);
     }
 }
@@ -187,11 +190,11 @@ pub enum GameAction {
 
 fn game_actions() -> InputMap<GameAction> {
     use GameAction::*;
-    let mut input_map = InputMap::default();
+    let mut input_map: InputMap<GameAction> = InputMap::default();
 
-    input_map.insert(KeyCode::E, Undo);
-    input_map.insert(KeyCode::R, Reset);
-    input_map.insert(KeyCode::G, ToLevelSelect);
+    input_map.insert(Undo, KeyCode::KeyE);
+    input_map.insert(Reset, KeyCode::KeyR);
+    input_map.insert(ToLevelSelect, KeyCode::KeyG);
 
     input_map
 }

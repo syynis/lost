@@ -1,6 +1,6 @@
 use std::ops::AddAssign;
 
-use bevy::{ecs::system::Command, log, prelude::*};
+use bevy::{ecs::world::Command, log, prelude::*};
 use leafwing_input_manager::prelude::*;
 
 use super::{
@@ -96,10 +96,10 @@ fn player_actions() -> InputMap<PlayerAction> {
     use PlayerAction::*;
     let mut input_map = InputMap::default();
 
-    input_map.insert(KeyCode::W, Up);
-    input_map.insert(KeyCode::D, Right);
-    input_map.insert(KeyCode::S, Down);
-    input_map.insert(KeyCode::A, Left);
+    input_map.insert(Up, KeyCode::KeyW);
+    input_map.insert(Right, KeyCode::KeyD);
+    input_map.insert(Down, KeyCode::KeyS);
+    input_map.insert(Left, KeyCode::KeyA);
 
     input_map
 }
@@ -154,8 +154,9 @@ pub fn player_movement(
                 let dir_vec = IVec2::from(direction);
                 for e in push {
                     dynamic_entities
-                        .get_component_mut::<TilePos>(e)
+                        .get_mut(e)
                         .expect("Every entity in collision map has tile pos")
+                        .0
                         .add_assign(dir_vec);
                 }
             }

@@ -1,8 +1,10 @@
 use bevy::prelude::*;
+use bevy_pancam::DirectionKeys;
 
 pub mod cleanup;
 pub mod event_scheduler;
 pub mod game;
+pub mod grid;
 pub mod ui;
 
 fn main() {
@@ -22,6 +24,7 @@ fn main() {
     let log_plugin = bevy::log::LogPlugin {
         level: bevy::log::Level::DEBUG,
         filter: "info,wgpu_core=error,wgpu_hal=error,game=debug".into(),
+        ..default()
     };
     app.add_plugins((
         DefaultPlugins
@@ -38,7 +41,7 @@ fn main() {
         game::GamePlugin,
         bevy_nine_slice_ui::NineSliceUiPlugin::default(),
     ))
-    .insert_resource(ClearColor(Color::ANTIQUE_WHITE))
+    .insert_resource(ClearColor(Color::srgb_u8(43, 44, 47)))
     .insert_resource(Msaa::Off)
     .add_systems(Startup, setup);
 
@@ -61,6 +64,7 @@ fn setup(mut cmds: Commands) {
         #[cfg(debug_assertions)]
         bevy_pancam::PanCam {
             grab_buttons: vec![MouseButton::Middle],
+            move_keys: DirectionKeys::NONE,
             enabled: true,
             ..default()
         },

@@ -6,35 +6,35 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-leafwing-input-manager = "0.11.2"
-bevy_nine_slice_ui = "0.5"
+leafwing-input-manager = "0.15"
+bevy_nine_slice_ui = "0.7"
 serde = "1.0"
 ron = "0.8"
 thiserror = "1.0"
 
 [dependencies.bevy]
-version = "0.12.1"
+version = "0.14"
 features = [ "wav" ]
 
 [dependencies.bevy_asset_loader]
-version = "0.18"
+version = "0.21"
 features = [ "2d" ]
 
 [dependencies.bevy-inspector-egui]
-version = "0.21"
+version = "0.27"
 optional = true
 
 [dependencies.bevy_pancam]
-version = "0.10"
+version = "0.15"
 features = ["bevy_egui"]
 
 [dependencies.bevy_simple_tilemap]
 git = "https://github.com/syynis/bevy_simple_tilemap"
 branch = "master"
 
-[dependencies.bevy_pile]
-git = "https://github.com/syynis/bevy_pile"
-branch = "main"
+# [dependencies.bevy_pile]
+# git = "https://github.com/syynis/bevy_pile"
+# branch = "main"
 
 [features]
 default = [ "hot", "dyn", "inspector" ]

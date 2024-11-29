@@ -1,5 +1,6 @@
 use bevy::{log, prelude::*};
-use bevy_pile::grid::Grid;
+
+use crate::grid::Grid;
 
 use super::{
     level::Levels, level_select::CurrentLevel, Dir, EntityKind, GameAssets, GameState, TilePos,
@@ -12,8 +13,8 @@ impl Plugin for CollisionPlugin {
         app.register_type::<CollisionMap>()
             .add_systems(
                 OnTransition {
-                    from: GameState::LevelTransition,
-                    to: GameState::Play,
+                    exited: GameState::LevelTransition,
+                    entered: GameState::Play,
                 },
                 init_collision_map,
             )

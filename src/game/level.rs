@@ -1,16 +1,18 @@
+use std::future::Future;
+
 use bevy::{
     asset::{AssetLoader, AsyncReadExt},
     ecs::system::SystemParam,
     prelude::*,
-    reflect::{TypePath, TypeUuid},
+    reflect::TypePath,
+    utils::ConditionalSendFuture,
 };
-use bevy_pile::grid::Grid;
 use bevy_simple_tilemap::prelude::*;
 use bevy_simple_tilemap::TileFlags;
 use serde::Deserialize;
 use thiserror::Error;
 
-use crate::cleanup::DependOnState;
+use crate::{cleanup::DependOnState, grid::Grid};
 
 use super::{
     collision::init_collision_map, history::HistoryBundle, level_select::CurrentLevel,
@@ -25,8 +27,8 @@ impl Plugin for LevelPlugin {
         app.register_type::<Level>();
         app.add_systems(
             OnTransition {
-                from: GameState::LevelTransition,
-                to: GameState::Play,
+                exited: GameState::LevelTransition,
+                entered: GameState::Play,
             },
             (spawn_level, apply_deferred)
                 .chain()
@@ -162,7 +164,8 @@ fn spawn_level(mut cmds: Commands, level_data: LevelData, assets: Res<GameAssets
         .insert((
             TileMapBundle {
                 tilemap,
-                texture_atlas: assets.tiles.clone_weak(),
+                atlas: assets.layout.clone_weak().into(),
+                texture: assets.tiles.clone_weak(),
                 transform: Transform::from_translation(Vec3::NEG_Z),
                 ..default()
             },
@@ -175,7 +178,8 @@ fn spawn_level(mut cmds: Commands, level_data: LevelData, assets: Res<GameAssets
         .insert((
             TileMapBundle {
                 tilemap: walls,
-                texture_atlas: assets.tiles.clone_weak(),
+                atlas: assets.layout.clone_weak().into(),
+                texture: assets.tiles.clone_weak(),
                 transform: Transform::from_translation(
                     8. * Vec3::Y + level.size.y as f32 * Vec3::Z,
                 ),
@@ -189,7 +193,8 @@ fn spawn_level(mut cmds: Commands, level_data: LevelData, assets: Res<GameAssets
         .insert((
             TileMapBundle {
                 tilemap: sub_walls,
-                texture_atlas: assets.tiles.clone_weak(),
+                atlas: assets.layout.clone_weak().into(),
+                texture: assets.tiles.clone_weak(),
                 transform: Transform::from_translation(8. * Vec3::Y + Vec3::NEG_Z * 0.5),
                 ..default()
             },
@@ -315,6 +320,7 @@ fn reload_on_change(
             AssetEvent::Added { id: _ } => {}
             AssetEvent::Removed { id: _ } => {}
             AssetEvent::LoadedWithDependencies { id: _ } => {}
+            _ => {}
         }
     }
 }
@@ -383,8 +389,7 @@ pub struct StringLevel(pub String);
 #[derive(Deserialize, Debug, Deref)]
 pub struct StringLevels(pub Vec<StringLevel>);
 
-#[derive(TypePath, TypeUuid, Debug, Deserialize, Deref, DerefMut, Asset)]
-#[uuid = "39cadc56-aa9c-4543-8540-a018b74b5052"]
+#[derive(TypePath, Debug, Deserialize, Deref, DerefMut, Asset)]
 pub struct Levels(pub Vec<Level>);
 
 #[derive(Deserialize, Debug, Reflect)]
@@ -415,7 +420,9 @@ impl AssetLoader for LevelLoader {
         reader: &'a mut bevy::asset::io::Reader,
         _settings: &'a Self::Settings,
         _load_context: &'a mut bevy::asset::LoadContext,
-    ) -> bevy::utils::BoxedFuture<'a, std::result::Result<Self::Asset, Self::Error>> {
+    ) -> impl ConditionalSendFuture
+           + Future<Output = Result<<Self as AssetLoader>::Asset, <Self as AssetLoader>::Error>>
+    {
         Box::pin(async move {
             let mut bytes = Vec::new();
             reader.read_to_end(&mut bytes).await?;
